@@ -62,7 +62,8 @@ def text_to_eng(text):
 
 def text_to_kor(text):
     text = text_to_eng(text)
-    prompt = bot.generate_text(text + " in korean")
+    prompt = bot.generate_text(text)
+    prompt = bot.generate_text(prompt) + " in korean"
     return prompt
 
 
@@ -95,7 +96,6 @@ def handle_mention(body, say, logger, event):
     ts = event["ts"]
     channel = event["channel"]
     send_markdown_message(channel=channel, text=prompt, thread_ts=ts)
-
 
 
 if __name__ == "__main__":

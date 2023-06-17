@@ -97,6 +97,7 @@ def handle_mention(body, say, logger, event):
     send_markdown_message(channel=channel, text=prompt, thread_ts=ts)
 
 
+
 if __name__ == "__main__":
     # Start the bot
     handler = SocketModeHandler(app_token=app_token, app=app)

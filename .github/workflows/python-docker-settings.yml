@@ -1,0 +1,37 @@
+name: Python Docker Host Runner
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+
+      - name: Build Docker image
+        run: docker build -t my_docker_image .
+        working-directory: .
+
+      - name: Stop previous Docker container
+        run: docker stop my_docker_container || true
+        continue-on-error: true
+
+      - name: Remove previous Docker container
+        run: docker rm my_docker_container || true
+        continue-on-error: true
+
+      - name: Run Docker container
+        run: docker run -d --name my_docker_container my_docker_image

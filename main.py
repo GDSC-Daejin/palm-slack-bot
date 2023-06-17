@@ -62,8 +62,8 @@ def text_to_eng(text):
 
 def text_to_kor(text):
     text = text_to_eng(text)
-    prompt = bot.generate_text(text)
-    prompt = bot.generate_text(prompt) + " in korean"
+    prompt = bot.generate_text(text) + " in korean"
+    prompt = bot.generate_text(prompt)
     return prompt
 
 

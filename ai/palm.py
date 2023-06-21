@@ -1,8 +1,10 @@
 import pprint
 import google.generativeai as palm
+import sys
+from db.db import palm_api_key
 
 
-class PalmBot:
+class PALM:
     def __init__(self, api_key):
         palm.configure(api_key=api_key)
         self.models = [
@@ -18,7 +20,20 @@ class PalmBot:
                 temperature=0,
                 max_output_tokens=self.models[0].output_token_limit,
             )
-            completion = completion.result
+            if completion.result is None:
+                completion = completion.filters[0]
+            else:
+                completion = completion.result
+
         except Exception as e:
-            completion = "아 영어로만 쓰라구 ㅋㅋ"
+            print(e)
+            completion = "error in generate_text()"
+
         return completion
+
+    def text_to_kor(self, prompt):
+        prompt += " in korean"
+        return self.generate_text(prompt)
+
+
+PALM_BOT = PALM(palm_api_key)

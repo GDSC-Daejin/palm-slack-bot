@@ -20,16 +20,16 @@ jobs:
           python-version: 3.9
 
       - name: Build Docker image
-        run: sudo docker build -t my_docker_image .
+        run: sudo docker build -t palm_slack_bot_image .
         working-directory: .
 
       - name: Stop previous Docker container
-        run: sudo docker stop my_docker_container || true
+        run: sudo docker stop palm_slack_bot_container || true
         continue-on-error: true
 
       - name: Remove previous Docker container
-        run: sudo docker rm my_docker_container || true
+        run: sudo docker rm palm_slack_bot_container || true
         continue-on-error: true
 
       - name: Run Docker container
-        run: sudo docker run -d --name my_docker_container my_docker_image
+        run: sudo docker run -d --name palm_slack_bot_container palm_slack_bot_image

@@ -35,6 +35,7 @@ def processing_prompt(prompt):
         return " ".join(str_list).strip()
 
     eng_result = PALM_BOT.generate_text(text_to_eng(prompt))
+
     if isinstance(eng_result, dict):
         eng_result = str(eng_result)
         return eng_result, eng_result

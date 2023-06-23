@@ -1,30 +1,18 @@
 # pip install -q google-generativeai
-from db import get_api_key
+from db.db import bot_token, signing_secret, app_token
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
-from palm import PalmBot
 import re
-import json
-import requests
-import uuid
-
-api_key = get_api_key()
-app_token = api_key["PALM_SLACK_APP_TOKEN"]
-bot_token = api_key["PALM_SLACK_BOT_TOKEN"]
-signing_secret = api_key["PALM_SLACK_SIGNING_SECRET"]
-palm_token = api_key["PALM_API_KEY"]
-azure_translate_api = api_key["AZURE_TRANSLATE_API"]
+from translator.translator import text_to_eng, text_to_kor
+from ai.palm import PALM_BOT
 
 app = App(token=bot_token, signing_secret=signing_secret)
-bot = PalmBot(palm_token)
 client = WebClient(token=bot_token)
 
 
-def send_markdown_message(channel, text, thread_ts=None):
-    blocks = [{"type": "section", "text": {"type": "mrkdwn", "text": text}}]
-
+def send_message(channel, text, thread_ts=None):
     try:
         response = client.chat_postMessage(channel=channel, text=text, thread_ts=thread_ts)
         return response
@@ -33,46 +21,32 @@ def send_markdown_message(channel, text, thread_ts=None):
         client.chat_postMessage(channel=channel, text=text, thread_ts=thread_ts)
 
 
-def text_to_eng(text):
-    # Azure Cognitive Services 리소스에서 얻은 엔드포인트 및 구독 키
-    key = azure_translate_api
+def processing_prompt(prompt):
+    def split_text(text):
+        pattern = r"```[\s\S]*?```"  # 백틱으로 된 코드 블록을 찾는 정규식 패턴
+        code_blocks = re.findall(pattern, text)
+        sentences = re.split(pattern, text)
 
-    # 번역할 텍스트
-    text_to_translate = text
+        return sentences, code_blocks
 
-    # 번역 요청 URL
-    url = f"https://api.cognitive.microsofttranslator.com/translate?api-version=3.0&to=en"
+    def listToString(str_list):
+        result = ""
+        for s in str_list:
+            result += s + " "
+        return result.strip()
 
-    # 번역 요청 헤더 및 본문 데이터
-    headers = {
-        "Ocp-Apim-Subscription-Key": key,
-        "Content-type": "application/json",
-        "X-ClientTraceId": str(uuid.uuid4()),
-    }
-    data = [{"text": text_to_translate}]
+    generated_text = PALM_BOT.generate_text(text_to_eng(prompt))
 
-    # 번역 요청 보내기
-    response = requests.post(url, headers=headers, json=data)
-    result = response.json()
-
-    # 번역 결과 확인
-    translated_text = result[0]["translations"][0]["text"]
-    return translated_text
-
-
-def text_to_kor(text):
-    text = text_to_eng(text)
-    prompt = bot.generate_text(text) + " in korean"
-    prompt = bot.generate_text(prompt)
-    return prompt
-
-
-@app.command("/palm")
-def repeat_text(ack, respond, command, say, body):
-    ack()
-    prompt = bot.generate_text(f"{command['text']}")
-    prompt = text_to_kor(prompt)
-    say(prompt)
+    sentences, code_blocks = split_text(generated_text)
+    kor_sentences = []
+    for sentence in sentences:
+        text_to_korean = text_to_kor(sentence)
+        kor_sentences.append(text_to_korean)
+    merged_list = [
+        kor_sentence + code_block for kor_sentence, code_block in zip(kor_sentences, code_blocks)
+    ]
+    result = listToString(merged_list)
+    return result
 
 
 @app.event("message")
@@ -83,8 +57,8 @@ def handle_message_event(event):
     channel = event["channel"]
     # DM 이벤트인지 확인
     if channel_type == "im":
-        prompt = text_to_kor(text)
-        send_markdown_message(channel=channel, text=prompt, thread_ts=ts)
+        prompt = processing_prompt(text)
+        send_message(channel=channel, text=prompt, thread_ts=ts)
         # client.chat_postMessage(channel=channel, text=prompt, thread_ts=ts)
 
 
@@ -92,10 +66,10 @@ def handle_message_event(event):
 def handle_mention(body, say, logger, event):
     pattern = r"<@[\w\d]+>"
     text = re.sub(pattern, "", event["text"]).strip()
-    prompt = text_to_kor(text)
     ts = event["ts"]
     channel = event["channel"]
-    send_markdown_message(channel=channel, text=prompt, thread_ts=ts)
+    prompt = processing_prompt(text)
+    send_message(channel=channel, text=prompt, thread_ts=ts)
 
 
 if __name__ == "__main__":

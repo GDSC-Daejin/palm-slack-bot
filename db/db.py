@@ -8,7 +8,6 @@ def get_database_connection():
         DB_IP_addr = os.environ["DB_IP_ADDR"]
     except KeyError:
         DB_IP_addr = "10.0.0.16"
-
     try:
         # Connect to the database
         connection = pymysql.connect(host=DB_IP_addr, user="james", password="password", db="token")
@@ -39,6 +38,12 @@ def get_api_key():
 
 
 def insert_member_id(data):
+    global connection
+    try:
+        DB_IP_addr = os.environ["DB_IP_ADDR"]
+    except KeyError:
+        DB_IP_addr = "10.0.0.16"
+
     DB_IP_addr = os.environ["DB_IP_ADDR"]
     connection = pymysql.connect(host=DB_IP_addr, user="james", password="password", db="slack")
     with connection.cursor() as cursor:
@@ -54,3 +59,12 @@ def insert_member_id(data):
     # Commit the changes and close the connection
     connection.commit()
     connection.close()
+
+
+api_key = get_api_key()
+
+palm_api_key = api_key["PALM_API_KEY"]
+azure_api_key = api_key["AZURE_TRANSLATE_API"]
+app_token = api_key["PALM_SLACK_APP_TOKEN"]
+bot_token = api_key["PALM_SLACK_BOT_TOKEN"]
+signing_secret = api_key["PALM_SLACK_SIGNING_SECRET"]

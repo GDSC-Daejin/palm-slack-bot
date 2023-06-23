@@ -2,3 +2,4 @@ pymysql
 google-generativeai
 slack_sdk
 slack_bolt
+bardapi

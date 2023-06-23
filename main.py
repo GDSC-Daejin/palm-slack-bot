@@ -14,7 +14,7 @@ api_key = get_api_key()
 app_token = api_key["PALM_SLACK_APP_TOKEN"]
 bot_token = api_key["PALM_SLACK_BOT_TOKEN"]
 signing_secret = api_key["PALM_SLACK_SIGNING_SECRET"]
-palm_token = api_key["WS_PALM_API_KEY"]
+palm_token = api_key["PALM_API_KEY"]
 azure_translate_api = api_key["AZURE_TRANSLATOR_API"]
 
 app = App(token=bot_token, signing_secret=signing_secret)

@@ -7,19 +7,23 @@ from slack_bolt.adapter.socket_mode import SocketModeHandler
 import re
 from translator.translator import text_to_eng, text_to_kor
 from ai.palm import PALM_BOT
+from ai.bard import get_answer_from_bard
 
 app = App(token=bot_token, signing_secret=signing_secret)
 client = WebClient(token=bot_token)
 
 
-def send_message(channel, eng, kor, thread_ts=None):
+def send_message(channel, eng, kor, bard, thread_ts=None):
+    eng = "PALM : " + eng
+    kor = "PALM : " + kor
     try:
-        response = client.chat_postMessage(channel=channel, text=kor, thread_ts=thread_ts)
-        return response
+        client.chat_postMessage(channel=channel, text=kor, thread_ts=thread_ts)
+
     except SlackApiError as e:
         print(text, e)
         text = f"Error sending message: {e.response['error']}"
-        response = client.chat_postMessage(channel=channel, text=eng, thread_ts=thread_ts)
+        client.chat_postMessage(channel=channel, text=eng, thread_ts=thread_ts)
+    client.chat_postMessage(channel=channel, text=bard, thread_ts=thread_ts)
 
 
 def processing_prompt(prompt):
@@ -56,7 +60,7 @@ def processing_prompt(prompt):
 
 
 @app.event("message")
-def handle_message_event(event):
+def handle_message_event(event, message, say):
     channel_type = event["channel_type"]
     text = event["text"]
     ts = event["ts"]
@@ -64,18 +68,20 @@ def handle_message_event(event):
     # DM 이벤트인지 확인
     if channel_type == "im":
         eng, kor = processing_prompt(text)
-        send_message(channel=channel, eng=eng, kor=kor, thread_ts=ts)
+        bard = get_answer_from_bard(ts, text)
+        send_message(channel=channel, eng=eng, kor=kor, bard=bard, thread_ts=ts)
         # client.chat_postMessage(channel=channel, text=prompt, thread_ts=ts)
 
 
 @app.event("app_mention")
-def handle_mention(body, say, logger, event):
+def handle_mention(body, say, logger, event, message):
     pattern = r"<@[\w\d]+>"
     text = re.sub(pattern, "", event["text"]).strip()
     ts = event["ts"]
     channel = event["channel"]
     eng, kor = processing_prompt(text)
-    send_message(channel=channel, eng=eng, kor=kor, thread_ts=ts)
+    bard = get_answer_from_bard(ts, text)
+    send_message(channel=channel, eng=eng, kor=kor, bard=bard, thread_ts=ts)
 
 
 if __name__ == "__main__":

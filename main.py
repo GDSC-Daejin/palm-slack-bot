@@ -1,4 +1,5 @@
 # pip install -q google-generativeai
+from datetime import datetime
 from db.db import bot_token, signing_secret, app_token
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
@@ -13,7 +14,7 @@ app = App(token=bot_token, signing_secret=signing_secret)
 client = WebClient(token=bot_token)
 
 
-def send_message(channel, eng, kor, bard, thread_ts=None):
+def send_message(channel, eng, kor, bard=None, thread_ts=None):
     eng = "PALM : " + eng
     kor = "PALM : " + kor
     try:
@@ -23,7 +24,8 @@ def send_message(channel, eng, kor, bard, thread_ts=None):
         print(text, e)
         text = f"Error sending message: {e.response['error']}"
         client.chat_postMessage(channel=channel, text=eng, thread_ts=thread_ts)
-    client.chat_postMessage(channel=channel, text=bard, thread_ts=thread_ts)
+    if bard:
+        client.chat_postMessage(channel=channel, text=bard, thread_ts=thread_ts)
 
 
 def processing_prompt(prompt):
@@ -59,6 +61,14 @@ def processing_prompt(prompt):
         return eng_result, kor_result
 
 
+def record_log(channel, channel_type=None, tx=None):
+    now = datetime.now()
+    if channel_type:
+        print(str(now) + " DM :  " + tx)
+    else:
+        print(str(now) + f"  {channel}  :  {tx}")
+
+
 @app.event("message")
 def handle_message_event(event, message, say):
     channel_type = event["channel_type"]
@@ -67,9 +77,10 @@ def handle_message_event(event, message, say):
     channel = event["channel"]
     # DM 이벤트인지 확인
     if channel_type == "im":
+        record_log(channel=channel, channel_type=channel_type, tx=text)
+
         eng, kor = processing_prompt(text)
-        bard = get_answer_from_bard(ts, text)
-        send_message(channel=channel, eng=eng, kor=kor, bard=bard, thread_ts=ts)
+        send_message(channel=channel, eng=eng, kor=kor, thread_ts=ts)
         # client.chat_postMessage(channel=channel, text=prompt, thread_ts=ts)
 
 
@@ -80,8 +91,9 @@ def handle_mention(body, say, logger, event, message):
     ts = event["ts"]
     channel = event["channel"]
     eng, kor = processing_prompt(text)
-    bard = get_answer_from_bard(ts, text)
-    send_message(channel=channel, eng=eng, kor=kor, bard=bard, thread_ts=ts)
+    # bard = get_answer_from_bard(ts, text)
+    record_log(channel=channel, tx=text)
+    send_message(channel=channel, eng=eng, kor=kor, thread_ts=ts)
 
 
 if __name__ == "__main__":

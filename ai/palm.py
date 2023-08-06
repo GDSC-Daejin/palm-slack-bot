@@ -18,7 +18,7 @@ class PALM:
             completion = palm.generate_text(
                 model=self.model,
                 prompt=prompt,
-                temperature=1.0,
+                temperature=0.5,
                 max_output_tokens=self.models[0].output_token_limit,
             )
             if completion.result is None:

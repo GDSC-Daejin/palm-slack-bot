@@ -18,7 +18,7 @@ class PALM:
             completion = palm.generate_text(
                 model=self.model,
                 prompt=prompt,
-                temperature=0,
+                temperature=0.5,
                 max_output_tokens=self.models[0].output_token_limit,
             )
             if completion.result is None:
@@ -28,13 +28,9 @@ class PALM:
 
         except Exception as e:
             print(e)
-            completion = "error in generate_text()"
+            completion = "영어, palm이 대답하기 싫은거 입력했어요."
 
         return completion
-
-    def text_to_kor(self, prompt):
-        prompt += " in korean"
-        return self.generate_text(prompt)
 
 
 PALM_BOT = PALM(palm_api_key)

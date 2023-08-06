@@ -6,9 +6,9 @@ from slack_sdk.errors import SlackApiError
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 import re
-from translator.translator import text_to_eng, text_to_kor
+from translator.translator import *
 from ai.palm import PALM_BOT
-from ai.bard import get_answer_from_bard
+
 
 app = App(token=bot_token, signing_secret=signing_secret)
 client = WebClient(token=bot_token)
@@ -21,11 +21,9 @@ def send_message(channel, eng, kor, bard=None, thread_ts=None):
         client.chat_postMessage(channel=channel, text=kor, thread_ts=thread_ts)
 
     except SlackApiError as e:
-        print(text, e)
-        text = f"Error sending message: {e.response['error']}"
+        # print(text, e)
+        # text = f"Error sending message: {e.response['error']}"
         client.chat_postMessage(channel=channel, text=eng, thread_ts=thread_ts)
-    if bard:
-        client.chat_postMessage(channel=channel, text=bard, thread_ts=thread_ts)
 
 
 def processing_prompt(prompt):
@@ -40,14 +38,14 @@ def processing_prompt(prompt):
     def list_to_string(str_list):
         return " ".join(str_list).strip()
 
-    eng_result = PALM_BOT.generate_text(text_to_eng(prompt))
+    eng_result = PALM_BOT.generate_text(translate_kor_to_eng(prompt))
 
     if isinstance(eng_result, dict):
         eng_result = str(eng_result)
         return eng_result, eng_result
     else:
         sentences, code_blocks = split_text(eng_result)
-        kor_sentences = [text_to_kor(sentence) for sentence in sentences]
+        kor_sentences = [translate_eng_to_kor(sentence) for sentence in sentences]
 
         merged_list = []
         for i, kor_sentence in enumerate(kor_sentences):
@@ -64,7 +62,7 @@ def processing_prompt(prompt):
 def record_log(channel, channel_type=None, tx=None):
     now = datetime.now()
     if channel_type:
-        print(str(now) + " DM :  " + tx)
+        print(str(now) + f" {channel_type} :  " + tx)
     else:
         print(str(now) + f"  {channel}  :  {tx}")
 

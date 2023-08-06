@@ -49,7 +49,6 @@ def processing_prompt(prompt, channel, ts):
     prompt = translate_kor_to_eng(prompt)
 
     eng_result = PALM_BOT.generate_text(prompt)
-    print(eng_result)
     if isinstance(eng_result, dict):
         eng_result = str(eng_result)
         mention_reomove(channel, ts)
@@ -67,7 +66,6 @@ def processing_prompt(prompt, channel, ts):
                 merged_list.append(kor_sentence)
 
         kor_result = list_to_string(merged_list)
-        print(kor_result)
         mention_reomove(channel, ts)
         return eng_result, kor_result
 
@@ -76,13 +74,13 @@ def record_log(channel, channel_type=None, tx=None, eng, kor):
     now = datetime.now()
     if channel_type:
         print(str(now) + f" {channel_type} :  " + tx)
-        print(str(now) + f" {channel_type} :  " + eng)
-        print(str(now) + f" {channel_type} :  " + kor)
+        print(str(now) + f" 영어 :  " + eng)
+        print(str(now) + f" 한글 :  " + kor)
         return
     else:
         print(str(now) + f"  {channel}  :  {tx}")
-        print(str(now) + f" {channel} :  " + eng)
-        print(str(now) + f" {channel} :  " + kor)
+        print(str(now) + f" 영어 :  " + eng)
+        print(str(now) + f" 한글 :  " + kor)
         
         return
 

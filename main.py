@@ -14,6 +14,14 @@ app = App(token=bot_token, signing_secret=signing_secret)
 client = WebClient(token=bot_token)
 
 
+def mention_add(channel, ts):
+    client.reactions_add(name="spinner", channel=channel, timestamp=ts)
+
+
+def mention_reomove(channel, ts):
+    client.reactions_remove(name="spinner", channel=channel, timestamp=ts)
+
+
 def send_message(channel, eng, kor, bard=None, thread_ts=None):
     eng = "PALM : " + eng
     kor = "PALM : " + kor
@@ -26,8 +34,10 @@ def send_message(channel, eng, kor, bard=None, thread_ts=None):
         client.chat_postMessage(channel=channel, text=eng, thread_ts=thread_ts)
 
 
-def processing_prompt(prompt):
+def processing_prompt(prompt, channel, ts):
     result = ""
+    record_log(channel=channel, tx=prompt)
+    mention_add(channel, ts)
 
     def split_text(text):
         pattern = r"```[\s\S]*?```"  # Regular expression pattern to find code blocks enclosed in backticks
@@ -42,6 +52,7 @@ def processing_prompt(prompt):
 
     if isinstance(eng_result, dict):
         eng_result = str(eng_result)
+        mention_reomove(channel, ts)
         return eng_result, eng_result
     else:
         sentences, code_blocks = split_text(eng_result)
@@ -56,6 +67,7 @@ def processing_prompt(prompt):
                 merged_list.append(kor_sentence)
 
         kor_result = list_to_string(merged_list)
+        mention_reomove(channel, ts)
         return eng_result, kor_result
 
 
@@ -76,8 +88,7 @@ def handle_message_event(event, message, say):
     # DM 이벤트인지 확인
     if channel_type == "im":
         record_log(channel=channel, channel_type=channel_type, tx=text)
-
-        eng, kor = processing_prompt(text)
+        eng, kor = processing_prompt(text, channel=channel, ts=ts)
         send_message(channel=channel, eng=eng, kor=kor, thread_ts=ts)
         # client.chat_postMessage(channel=channel, text=prompt, thread_ts=ts)
 
@@ -88,9 +99,9 @@ def handle_mention(body, say, logger, event, message):
     text = re.sub(pattern, "", event["text"]).strip()
     ts = event["ts"]
     channel = event["channel"]
-    eng, kor = processing_prompt(text)
+    eng, kor = processing_prompt(text, channel=channel, ts=ts)
     # bard = get_answer_from_bard(ts, text)
-    record_log(channel=channel, tx=text)
+
     send_message(channel=channel, eng=eng, kor=kor, thread_ts=ts)
 
 

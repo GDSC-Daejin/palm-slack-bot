@@ -24,14 +24,18 @@ from googletrans import Translator
 
 
 def translate_kor_to_eng(text, target_language="en"):
-    translator = Translator(service_urls=["translate.google.com"])
-    result = translator.translate(text, dest=target_language)
+    if text:
+        translator = Translator(service_urls=["translate.google.com"])
+        result = translator.translate(text, dest=target_language)
 
-    return result.text
+        return result.text
+    return ""
 
 
 def translate_eng_to_kor(text, target_language="ko"):
-    translator = Translator(service_urls=["translate.google.com"])
-    result = translator.translate(text, dest=target_language)
+    if text:
+        translator = Translator(service_urls=["translate.google.com"])
+        result = translator.translate(text, dest=target_language)
 
-    return result.text
+        return result.text
+    return ""

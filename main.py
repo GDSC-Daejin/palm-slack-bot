@@ -23,8 +23,6 @@ def mention_reomove(channel, ts):
 
 
 def send_message(channel, eng, kor, bard=None, thread_ts=None):
-    eng = "PALM : " + eng
-    kor = "PALM : " + kor
     try:
         client.chat_postMessage(channel=channel, text=kor, thread_ts=thread_ts)
 
@@ -48,8 +46,10 @@ def processing_prompt(prompt, channel, ts):
     def list_to_string(str_list):
         return " ".join(str_list).strip()
 
-    eng_result = PALM_BOT.generate_text(translate_kor_to_eng(prompt))
+    prompt = translate_kor_to_eng(prompt)
 
+    eng_result = PALM_BOT.generate_text(prompt)
+    print(eng_result)
     if isinstance(eng_result, dict):
         eng_result = str(eng_result)
         mention_reomove(channel, ts)
@@ -61,12 +61,13 @@ def processing_prompt(prompt, channel, ts):
         merged_list = []
         for i, kor_sentence in enumerate(kor_sentences):
             if i < len(code_blocks):
-                merged_list.append(kor_sentence + code_blocks[i])
+                merged_list.append(kor_sentence + "\n\n" + code_blocks[i])
             else:
                 # Handling the case where there are more kor_sentences than code_blocks
                 merged_list.append(kor_sentence)
 
         kor_result = list_to_string(merged_list)
+        print(kor_result)
         mention_reomove(channel, ts)
         return eng_result, kor_result
 
@@ -75,8 +76,10 @@ def record_log(channel, channel_type=None, tx=None):
     now = datetime.now()
     if channel_type:
         print(str(now) + f" {channel_type} :  " + tx)
+        return
     else:
         print(str(now) + f"  {channel}  :  {tx}")
+        return
 
 
 @app.event("message")
@@ -86,6 +89,7 @@ def handle_message_event(event, message, say):
     ts = event["ts"]
     channel = event["channel"]
     # DM 이벤트인지 확인
+
     if channel_type == "im":
         record_log(channel=channel, channel_type=channel_type, tx=text)
         eng, kor = processing_prompt(text, channel=channel, ts=ts)

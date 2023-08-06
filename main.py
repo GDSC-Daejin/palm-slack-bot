@@ -34,7 +34,6 @@ def send_message(channel, eng, kor, bard=None, thread_ts=None):
 
 def processing_prompt(prompt, channel, ts):
     result = ""
-    record_log(channel=channel, tx=prompt)
     mention_add(channel, ts)
 
     def split_text(text):

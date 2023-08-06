@@ -72,13 +72,18 @@ def processing_prompt(prompt, channel, ts):
         return eng_result, kor_result
 
 
-def record_log(channel, channel_type=None, tx=None):
+def record_log(channel, channel_type=None, tx=None, eng, kor):
     now = datetime.now()
     if channel_type:
         print(str(now) + f" {channel_type} :  " + tx)
+        print(str(now) + f" {channel_type} :  " + eng)
+        print(str(now) + f" {channel_type} :  " + kor)
         return
     else:
         print(str(now) + f"  {channel}  :  {tx}")
+        print(str(now) + f" {channel} :  " + eng)
+        print(str(now) + f" {channel} :  " + kor)
+        
         return
 
 
@@ -91,8 +96,9 @@ def handle_message_event(event, message, say):
     # DM 이벤트인지 확인
 
     if channel_type == "im":
-        record_log(channel=channel, channel_type=channel_type, tx=text)
+        
         eng, kor = processing_prompt(text, channel=channel, ts=ts)
+        record_log(channel=channel, channel_type=channel_type, tx=text,eng=eng,kor=kor)
         send_message(channel=channel, eng=eng, kor=kor, thread_ts=ts)
         # client.chat_postMessage(channel=channel, text=prompt, thread_ts=ts)
 
@@ -105,7 +111,7 @@ def handle_mention(body, say, logger, event, message):
     channel = event["channel"]
     eng, kor = processing_prompt(text, channel=channel, ts=ts)
     # bard = get_answer_from_bard(ts, text)
-
+    record_log(channel=channel, tx=text,eng=eng,kor=kor)
     send_message(channel=channel, eng=eng, kor=kor, thread_ts=ts)
 
 

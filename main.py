@@ -6,30 +6,35 @@ from slack_sdk.errors import SlackApiError
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 import re
-from translator.translator import text_to_eng, text_to_kor
+from translator.translator import translate_kor_to_eng, translate_eng_to_kor
 from ai.palm import PALM_BOT
-from ai.bard import get_answer_from_bard
+
 
 app = App(token=bot_token, signing_secret=signing_secret)
 client = WebClient(token=bot_token)
 
 
+def mention_add(channel, ts):
+    client.reactions_add(name="spinner", channel=channel, timestamp=ts)
+
+
+def mention_reomove(channel, ts):
+    client.reactions_remove(name="spinner", channel=channel, timestamp=ts)
+
+
 def send_message(channel, eng, kor, bard=None, thread_ts=None):
-    eng = "PALM : " + eng
-    kor = "PALM : " + kor
     try:
         client.chat_postMessage(channel=channel, text=kor, thread_ts=thread_ts)
 
     except SlackApiError as e:
-        print(text, e)
-        text = f"Error sending message: {e.response['error']}"
+        # print(text, e)
+        # text = f"Error sending message: {e.response['error']}"
         client.chat_postMessage(channel=channel, text=eng, thread_ts=thread_ts)
-    if bard:
-        client.chat_postMessage(channel=channel, text=bard, thread_ts=thread_ts)
 
 
-def processing_prompt(prompt):
+def processing_prompt(prompt, channel, ts):
     result = ""
+    mention_add(channel, ts)
 
     def split_text(text):
         pattern = r"```[\s\S]*?```"  # Regular expression pattern to find code blocks enclosed in backticks
@@ -46,7 +51,7 @@ def processing_prompt(prompt):
             return eng_result
         else:
             sentences, code_blocks = split_text(prompt)
-            eng_sentences = [text_to_eng(sentence) for sentence in sentences]
+            eng_sentences = [translate_kor_to_eng(sentence) for sentence in sentences]
 
             merged_list = []
             for i, eng_sentence in enumerate(eng_sentences):
@@ -65,7 +70,7 @@ def processing_prompt(prompt):
             return eng_result, eng_result
         else:
             sentences, code_blocks = split_text(eng_result)
-            kor_sentences = [text_to_kor(sentence) for sentence in sentences]
+            kor_sentences = [translate_eng_to_kor(sentence) for sentence in sentences]
 
             merged_list = []
             for i, kor_sentence in enumerate(kor_sentences):
@@ -81,15 +86,23 @@ def processing_prompt(prompt):
     eng_prompt = kor_to_eng(prompt)
     eng_result = PALM_BOT.generate_text((eng_prompt))
     eng_result, kor_result = eng_to_kor(eng_result)
+    mention_reomove(channel, ts)
     return eng_result, kor_result
 
 
-def record_log(channel, channel_type=None, tx=None):
+def record_log(channel, channel_type=None, tx=None, eng=None, kor=None):
     now = datetime.now()
     if channel_type:
-        print(str(now) + " DM :  " + tx)
+        print(str(now) + f" {channel_type} :  " + tx)
+        print(str(now) + f" 영어 :  " + eng)
+        print(str(now) + f" 한글 :  " + kor)
+        return
     else:
         print(str(now) + f"  {channel}  :  {tx}")
+        print(str(now) + f" 영어 :  " + eng)
+        print(str(now) + f" 한글 :  " + kor)
+
+        return
 
 
 @app.event("message")
@@ -99,9 +112,11 @@ def handle_message_event(event, message, say):
     ts = event["ts"]
     channel = event["channel"]
     # DM 이벤트인지 확인
+
     if channel_type == "im":
-        record_log(channel=channel, channel_type=channel_type, tx=text)
-        eng, kor = processing_prompt(text)
+        eng, kor = processing_prompt(text, channel, ts)
+        record_log(channel, channel_type=channel_type, tx=text, eng=eng, kor=kor)
+
         send_message(channel=channel, eng=eng, kor=kor, thread_ts=ts)
         # client.chat_postMessage(channel=channel, text=prompt, thread_ts=ts)
 
@@ -112,9 +127,9 @@ def handle_mention(body, say, logger, event, message):
     text = re.sub(pattern, "", event["text"]).strip()
     ts = event["ts"]
     channel = event["channel"]
-    eng, kor = processing_prompt(text)
+    eng, kor = processing_prompt(text, channel=channel, ts=ts)
     # bard = get_answer_from_bard(ts, text)
-    record_log(channel=channel, tx=text)
+    record_log(channel=channel, tx=text, eng=eng, kor=kor)
     send_message(channel=channel, eng=eng, kor=kor, thread_ts=ts)
 
 

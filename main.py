@@ -40,25 +40,48 @@ def processing_prompt(prompt):
     def list_to_string(str_list):
         return " ".join(str_list).strip()
 
-    eng_result = PALM_BOT.generate_text(text_to_eng(prompt))
+    def kor_to_eng(prompt):
+        if isinstance(prompt, dict):
+            eng_result = str(prompt)
+            return eng_result
+        else:
+            sentences, code_blocks = split_text(prompt)
+            eng_sentences = [text_to_eng(sentence) for sentence in sentences]
 
-    if isinstance(eng_result, dict):
-        eng_result = str(eng_result)
-        return eng_result, eng_result
-    else:
-        sentences, code_blocks = split_text(eng_result)
-        kor_sentences = [text_to_kor(sentence) for sentence in sentences]
+            merged_list = []
+            for i, eng_sentence in enumerate(eng_sentences):
+                if i < len(code_blocks):
+                    merged_list.append(eng_sentence + code_blocks[i])
+                else:
+                    # Handling the case where there are more kor_sentences than code_blocks
+                    merged_list.append(eng_sentence)
 
-        merged_list = []
-        for i, kor_sentence in enumerate(kor_sentences):
-            if i < len(code_blocks):
-                merged_list.append(kor_sentence + code_blocks[i])
-            else:
-                # Handling the case where there are more kor_sentences than code_blocks
-                merged_list.append(kor_sentence)
+            eng_result = list_to_string(merged_list)
+            return eng_result
 
-        kor_result = list_to_string(merged_list)
-        return eng_result, kor_result
+    def eng_to_kor(eng_result):
+        if isinstance(eng_result, dict):
+            eng_result = str(eng_result)
+            return eng_result, eng_result
+        else:
+            sentences, code_blocks = split_text(eng_result)
+            kor_sentences = [text_to_kor(sentence) for sentence in sentences]
+
+            merged_list = []
+            for i, kor_sentence in enumerate(kor_sentences):
+                if i < len(code_blocks):
+                    merged_list.append(kor_sentence + code_blocks[i])
+                else:
+                    # Handling the case where there are more kor_sentences than code_blocks
+                    merged_list.append(kor_sentence)
+
+            kor_result = list_to_string(merged_list)
+            return eng_result, kor_result
+
+    eng_prompt = kor_to_eng(prompt)
+    eng_result = PALM_BOT.generate_text((eng_prompt))
+    eng_result, kor_result = eng_to_kor(eng_result)
+    return eng_result, kor_result
 
 
 def record_log(channel, channel_type=None, tx=None):
@@ -78,7 +101,6 @@ def handle_message_event(event, message, say):
     # DM 이벤트인지 확인
     if channel_type == "im":
         record_log(channel=channel, channel_type=channel_type, tx=text)
-
         eng, kor = processing_prompt(text)
         send_message(channel=channel, eng=eng, kor=kor, thread_ts=ts)
         # client.chat_postMessage(channel=channel, text=prompt, thread_ts=ts)
